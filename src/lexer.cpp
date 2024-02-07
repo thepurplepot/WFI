@@ -26,31 +26,61 @@ Token Lexer::NextToken() {
     this->skipWhitespace();
     switch (this->ch) {
     case '=':
-        tok = Token(ASSIGN, {this->ch});
+        if (this->peekChar() == '=') {
+            char ch = this->ch;
+            this->readChar();
+            tok = Token(token::EQ, {ch, this->ch});
+        } else {
+            tok = Token(token::ASSIGN, {this->ch});
+        }
         break;
     case ';':
-        tok = Token(SEMICOLON, {this->ch});
+        tok = Token(token::SEMICOLON, {this->ch});
         break;
     case '(':
-        tok = Token(LPAREN, {this->ch});
+        tok = Token(token::LPAREN, {this->ch});
         break;
     case ')':
-        tok = Token(RPAREN, {this->ch});
+        tok = Token(token::RPAREN, {this->ch});
         break;
     case ',':
-        tok = Token(COMMA, {this->ch});
+        tok = Token(token::COMMA, {this->ch});
         break;
     case '+':
-        tok = Token(PLUS, {this->ch});
+        tok = Token(token::PLUS, {this->ch});
+        break;
+    case '-':
+        tok = Token(token::MINUS, {this->ch});
+        break;
+    case '!':
+        if (this->peekChar() == '=') {
+            char ch = this->ch;
+            this->readChar();
+            tok = Token(token::NOT_EQ, {ch, this->ch});
+        } else {
+            tok = Token(token::BANG, {this->ch});
+        }
+        break;
+    case '/':
+        tok = Token(token::SLASH, {this->ch});
+        break;
+    case '*':
+        tok = Token(token::ASTERISK, {this->ch});
+        break;
+    case '<':
+        tok = Token(token::LT, {this->ch});
+        break;
+    case '>':
+        tok = Token(token::GT, {this->ch});
         break;
     case '{':
-        tok = Token(LBRACE, {this->ch});
+        tok = Token(token::LBRACE, {this->ch});
         break;
     case '}':
-        tok = Token(RBRACE, {this->ch});
+        tok = Token(token::RBRACE, {this->ch});
         break;
     case 0:
-        tok = Token("EOF", "");
+        tok = Token(token::EOF_, "");
         break;
     default:
         if(isLetter(this->ch)) {
@@ -60,10 +90,10 @@ Token Lexer::NextToken() {
             return tok;
         } else if (isdigit(this->ch)) {
             std::string literal = this->readNumber();
-            tok = Token(INT, literal);
+            tok = Token(token::INT, literal);
             return tok;
         } else {
-            tok = Token(ILLEGAL, {this->ch});
+            tok = Token(token::ILLEGAL, {this->ch});
         }
     }
     this->readChar();

@@ -1,8 +1,6 @@
-#ifndef TOKEN_HH
-#define TOKEN_HH
-
 #include <string>
 #include <map>
+#pragma once
 
 typedef std::string token_t;
 
@@ -20,28 +18,46 @@ public:
     static token_t lookupIdent(std::string ident);
 };
 
-static std::string ILLEGAL = "ILLEGAL";
-//static std::string EOF = "EOF";
-// Identifiers + literals
-static std::string IDENT = "IDENT"; // add, foobar, x, y, ...
-static std::string INT = "INT"; // 1343456
-// Operators
-static std::string ASSIGN = "=";
-static std::string PLUS = "+";
-// Delimiters
-static std::string COMMA = ",";
-static std::string SEMICOLON = ";";
-static std::string LPAREN = "(";
-static std::string RPAREN = ")";
-static std::string LBRACE = "{";
-static std::string RBRACE = "}";
-// Keywords
-static std::string FUNCTION = "FUNCTION";
-static std::string LET = "LET";
+namespace token {
+    static token_t ILLEGAL = "ILLEGAL";
+    static token_t EOF_ = "EOF";
+    // Identifiers + literals
+    static token_t IDENT = "IDENT"; // add, foobar, x, y, ...
+    static token_t INT = "INT"; // 1343456
+    // Operators
+    static token_t ASSIGN = "=";
+    static token_t PLUS = "+";
+    static token_t MINUS = "-";
+    static token_t BANG = "!";
+    static token_t ASTERISK = "*";
+    static token_t SLASH = "/";
+    static token_t LT = "<";
+    static token_t GT = ">";
+    static token_t EQ = "==";
+    static token_t NOT_EQ = "!=";
+    // Delimiters
+    static token_t COMMA = ",";
+    static token_t SEMICOLON = ";";
+    static token_t LPAREN = "(";
+    static token_t RPAREN = ")";
+    static token_t LBRACE = "{";
+    static token_t RBRACE = "}";
+    // Keywords
+    static token_t FUNCTION = "FUNCTION";
+    static token_t LET = "LET";
+    static token_t TRUE = "TRUE";
+    static token_t FALSE = "FALSE";
+    static token_t IF = "IF";
+    static token_t ELSE = "ELSE";
+    static token_t RETURN = "RETURN";
 
-static std::map<std::string, std::string> keywords = {
-    {"fn", FUNCTION},
-    {"let", LET},
-};
-
-#endif // TOKEN_HH
+    static std::map<std::string, token_t> keywords = {
+        {"fn", FUNCTION},
+        {"let", LET},
+        {"true", TRUE},
+        {"false", FALSE},
+        {"if", IF},
+        {"else", ELSE},
+        {"return", RETURN},
+    };
+} // namespace Token
