@@ -28,9 +28,12 @@ include_directories(
 )
 
 # WFI sources
-# set(SOURCES_WFI
-#   src/main.cc
-# )
+set(SOURCES_WFI
+  src/main.cpp
+  src/repl.cpp
+  src/lexer.cpp
+  src/token.cpp
+)
 
 # Test sources
 set(SOURCES_TESTS
@@ -40,12 +43,7 @@ set(SOURCES_TESTS
 )
 
 # WFI config
-# add_executable(wfi ${SOURCES_WFI})
-
-# set_target_properties(wfi PROPERTIES
-#   VERSION ${PROJECT_VERSION}
-#   SOVERSION 1
-# )
+add_executable(wfi ${SOURCES_WFI})
 
 # Tests config
 if(BUILD_TESTS)

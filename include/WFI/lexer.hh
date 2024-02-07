@@ -1,7 +1,5 @@
-#ifndef LEXER_H
-#define LEXER_H
-
 #include "token.hh"
+#pragma once
 
 class Lexer {
 private:
@@ -22,5 +20,3 @@ public:
     void skipWhitespace();
     char peekChar();
 };
-
-#endif // LEXER_H
