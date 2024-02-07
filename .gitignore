@@ -1,0 +1,12 @@
+*.vscode
+build/*
+bin/*
+_deps/*
+*.cmake
+CMakeCache.txt
+Makefile
+CMakeFiles/*
+lib/*
+.DS_Store
+run_tests
+

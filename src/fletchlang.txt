@@ -1,0 +1,10 @@
+/*
+*   Fletchlang is a programming language that is designed to be simple and easy to use.
+*/
+
+var five = 5;
+var ten = 10;
+var add = fn(x, y) {
+    x + y;
+};
+var result = add(five, ten);
