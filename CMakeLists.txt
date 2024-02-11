@@ -37,6 +37,7 @@ set(SOURCES_WFI
 
 # Test sources
 set(SOURCES_TESTS
+  tests/ast_test.cpp
   tests/lexer_test.cpp
   tests/parser_test.cpp
   src/parser.cpp

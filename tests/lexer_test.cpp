@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-TEST(test_next_token, system) {
+TEST(lexer, test_next_token) {
     std::string input =
         "let five = 5;"
         "let ten = 10;"
