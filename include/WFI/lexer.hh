@@ -12,7 +12,7 @@ public:
     Lexer(std::string input);
     ~Lexer();
     void readChar();
-    Token NextToken();
+    Token nextToken();
     bool isLetter(char ch);
     bool isDigit(char ch);
     std::string readIdentifier();

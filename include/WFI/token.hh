@@ -11,7 +11,7 @@ private:
     std::string literal;
 public:
     Token() = default;
-    Token(token_t type, std::string literal);
+    Token(token_t type, std::string literal) : type(type), literal(literal) {};
     ~Token();
     token_t getType();
     std::string getLiteral();

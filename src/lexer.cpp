@@ -21,7 +21,7 @@ void Lexer::readChar() {
     this->readPosition += 1;
 }
 
-Token Lexer::NextToken() {
+Token Lexer::nextToken() {
     Token tok;
     this->skipWhitespace();
     switch (this->ch) {

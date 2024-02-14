@@ -1,10 +1,5 @@
 #include "token.hh"
 
-Token::Token(token_t type, std::string literal) {
-    this->type = type;
-    this->literal = literal;
-}
-
 Token::~Token() {
 }
 

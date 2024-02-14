@@ -15,7 +15,7 @@ void repl::Start() {
         }
 
         Lexer l = Lexer(input);
-        for(Token tok = l.NextToken(); tok.getType() != token::EOF_; tok = l.NextToken()) {
+        for(Token tok = l.nextToken(); tok.getType() != token::EOF_; tok = l.nextToken()) {
             std::cout << "Type: " << tok.getType() << " Literal: " << tok.getLiteral() << std::endl;
         }
 

@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-TEST(test_next_token, system) {
+TEST(lexer, test_next_token) {
     std::string input =
         "let five = 5;"
         "let ten = 10;"
@@ -90,7 +90,7 @@ TEST(test_next_token, system) {
 
     Lexer l = Lexer(input);
     for (int i = 0; i < tests.size(); i++) {
-        Token tok = l.NextToken();
+        Token tok = l.nextToken();
         EXPECT_EQ(tok.getType(), tests[i].getType());
         EXPECT_EQ(tok.getLiteral(), tests[i].getLiteral());
     }
