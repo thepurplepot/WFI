@@ -16,6 +16,7 @@ const std::map<token_t, precedence_t> Parser::precedences = {
     {token::MINUS, SUM},
     {token::SLASH, PRODUCT},
     {token::ASTERISK, PRODUCT},
+    {token::LPAREN, CALL},
 };
 
 
@@ -28,6 +29,11 @@ Parser::Parser(Lexer* l) {
     this->registerPrefix(token::INT, Parser::parseIntegerLiteral);
     this->registerPrefix(token::BANG, Parser::parsePrefixExpression);
     this->registerPrefix(token::MINUS, Parser::parsePrefixExpression);
+    this->registerPrefix(token::TRUE, Parser::parseBoolean);
+    this->registerPrefix(token::FALSE, Parser::parseBoolean); 
+    this->registerPrefix(token::LPAREN, Parser::parseGroupedExpression);
+    this->registerPrefix(token::IF, Parser::parseIfExpression);
+    this->registerPrefix(token::FUNCTION, Parser::parseFunctionLiteral);
 
     this->registerInfix(token::PLUS, Parser::parseInfixExpression);
     this->registerInfix(token::MINUS, Parser::parseInfixExpression);
@@ -37,6 +43,7 @@ Parser::Parser(Lexer* l) {
     this->registerInfix(token::NOT_EQ, Parser::parseInfixExpression);
     this->registerInfix(token::LT, Parser::parseInfixExpression);
     this->registerInfix(token::GT, Parser::parseInfixExpression);
+    this->registerInfix(token::LPAREN, Parser::parseCallExpression);
 }
 
 Parser::~Parser() {
@@ -80,6 +87,8 @@ LetStatement* Parser::parseLetStatement() {
     if (!expectPeek(token::ASSIGN)) {
         return nullptr;
     }
+    nextToken();
+    stmt->value = parseExpression(LOWEST);
     while (!curTokenIs(token::SEMICOLON)) {
         nextToken();
     }
@@ -90,6 +99,7 @@ ReturnStatement* Parser::parseReturnStatement() {
     ReturnStatement* stmt = new ReturnStatement();
     stmt->token = curToken;
     nextToken();
+    stmt->returnValue = parseExpression(LOWEST);
     while (!curTokenIs(token::SEMICOLON)) {
         nextToken();
     }
@@ -154,6 +164,118 @@ Expression* Parser::parseInfixExpression(Expression* left) {
     nextToken();
     exp->right = parseExpression(precedence);
     return exp;
+}
+
+Expression* Parser::parseGroupedExpression() {
+    nextToken();
+    Expression* exp = parseExpression(LOWEST);
+    if (!expectPeek(token::RPAREN)) {
+        return nullptr;
+    }
+    return exp;
+}
+
+Expression* Parser::parseBoolean() {
+    return new Boolean(curToken, curTokenIs(token::TRUE));
+}
+
+Expression* Parser::parseIfExpression() {
+    IfExpression* exp = new IfExpression(curToken);
+    if (!expectPeek(token::LPAREN)) {
+        return nullptr;
+    }
+    nextToken();
+    exp->condition = parseExpression(LOWEST);
+    if (!expectPeek(token::RPAREN)) {
+        return nullptr;
+    }
+    if (!expectPeek(token::LBRACE)) {
+        return nullptr;
+    }
+    exp->consequence = parseBlockStatement();
+
+    if (peekTokenIs(token::ELSE)) {
+        nextToken();
+        if (!expectPeek(token::LBRACE)) {
+            return nullptr;
+        }
+        exp->alternative = parseBlockStatement();
+    }
+
+    return exp;
+}
+
+BlockStatement* Parser::parseBlockStatement() {
+    BlockStatement* block = new BlockStatement(curToken);
+    nextToken();
+    while (!curTokenIs(token::RBRACE) && !curTokenIs(token::EOF_)) {
+        Statement* stmt = parseStatement();
+        if (stmt != nullptr) {
+            block->statements->push_back(stmt);
+        }
+        nextToken();
+    }
+    return block;
+}
+
+Expression* Parser::parseFunctionLiteral() {
+    FunctionLiteral* lit = new FunctionLiteral(curToken);
+    if (!expectPeek(token::LPAREN)) {
+        return nullptr;
+    }
+    lit->parameters = parseFunctionParameters();
+    if (!expectPeek(token::LBRACE)) {
+        return nullptr;
+    }
+    lit->body = parseBlockStatement();
+    return lit;
+}
+
+std::vector<Identifier*> Parser::parseFunctionParameters() {
+    std::vector<Identifier*> params;
+    if (peekTokenIs(token::RPAREN)) {
+        nextToken();
+        return params;
+    }
+    nextToken();
+    Identifier* ident = new Identifier(curToken, curToken.getLiteral());
+    params.push_back(ident);
+    while (peekTokenIs(token::COMMA)) {
+        nextToken();
+        nextToken();
+        Identifier* ident = new Identifier(curToken, curToken.getLiteral());
+        params.push_back(ident);
+    }
+    if (!expectPeek(token::RPAREN)) {
+        //NULL
+        return std::vector<Identifier*>();
+    }
+    return params;
+}
+
+Expression* Parser::parseCallExpression(Expression* function) {
+    CallExpression* exp = new CallExpression(curToken, function);
+    exp->arguments = parseCallArguments();
+    return exp;
+}
+
+std::vector<Expression*> Parser::parseCallArguments() {
+    std::vector<Expression*> args;
+    if (peekTokenIs(token::RPAREN)) {
+        nextToken();
+        return args;
+    }
+    nextToken();
+    args.push_back(parseExpression(LOWEST));
+    while (peekTokenIs(token::COMMA)) {
+        nextToken();
+        nextToken();
+        args.push_back(parseExpression(LOWEST));
+    }
+    if (!expectPeek(token::RPAREN)) {
+        return std::vector<Expression*>();
+    }
+    return args;
 }
 
 bool Parser::curTokenIs(token_t t) {

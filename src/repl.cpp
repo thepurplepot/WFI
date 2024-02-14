@@ -2,7 +2,7 @@
 #include <string>
 #include "repl.hh"
 #include "lexer.hh"
-
+#include "parser.hh"
 
 void repl::Start() {
     while(true) {
@@ -14,10 +14,23 @@ void repl::Start() {
             break;
         }
 
-        Lexer l = Lexer(input);
-        for(Token tok = l.nextToken(); tok.getType() != token::EOF_; tok = l.nextToken()) {
-            std::cout << "Type: " << tok.getType() << " Literal: " << tok.getLiteral() << std::endl;
+        Lexer* l = new Lexer(input);
+        Parser* p = new Parser(l);
+
+        Program* program = p->parseProgram();
+        if (p->getErrors().size() > 0) {
+            printParserErrors(p->getErrors());
+            continue;
         }
 
+        std::cout << program->string() << std::endl;
+    }
+}
+
+void repl::printParserErrors(std::vector<std::string> errors) {
+    std::cout << "Woops! We ran into some monkey business here!" << std::endl;
+    std::cout << " parser errors:" << std::endl;
+    for (auto err : errors) {
+        std::cout << err << std::endl;
     }
 }
