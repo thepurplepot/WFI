@@ -31,6 +31,8 @@ include_directories(
 set(SOURCES_WFI
   src/main.cpp
   src/repl.cpp
+  src/parser.cpp
+  src/ast.cpp
   src/lexer.cpp
   src/token.cpp
 )

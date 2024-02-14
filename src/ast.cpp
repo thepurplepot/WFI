@@ -128,4 +128,96 @@ std::string InfixExpression::string() {
     return out;
 }
 
+std::string Boolean::token_literal() {
+    return this->token.getLiteral();
+}
 
+std::string Boolean::expression_node() {
+    return "Boolean";
+}
+
+std::string Boolean::string() {
+    return this->token.getLiteral();
+}
+
+std::string IfExpression::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string IfExpression::expression_node() {
+    return "IfExpression";
+}
+
+std::string IfExpression::string() {
+    std::string out;
+    out += "if";
+    out += this->condition->string();
+    out += " ";
+    out += this->consequence->string();
+    if (this->alternative != nullptr) {
+        out += "else ";
+        out += this->alternative->string();
+    }
+    return out;
+}
+
+std::string BlockStatement::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string BlockStatement::statement_node() {
+    return "BlockStatement";
+}
+
+std::string BlockStatement::string() {
+    std::string out;
+    for (auto stmt : *this->statements) {
+        out += stmt->string();
+    }
+    return out;
+}
+
+std::string FunctionLiteral::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string FunctionLiteral::expression_node() {
+    return "FunctionLiteral";
+}
+
+std::string FunctionLiteral::string() {
+    std::string out;
+    out += this->token.getLiteral();
+    out += "(";
+    for (int i = 0; i < this->parameters.size(); i++) {
+        out += this->parameters.at(i)->string();
+        if (i != this->parameters.size() - 1) {
+            out += ", ";
+        }
+    }
+    out += ")";
+    out += this->body->string();
+    return out;
+}
+
+std::string CallExpression::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string CallExpression::expression_node() {
+    return "CallExpression";
+}
+
+std::string CallExpression::string() {
+    std::string out;
+    out += this->function->string();
+    out += "(";
+    for(int i = 0; i < this->arguments.size(); i++) {
+        out += this->arguments.at(i)->string();
+        if (i != this->arguments.size() - 1) {
+            out += ", ";
+        }
+    }
+    out += ")";
+    return out;
+}
