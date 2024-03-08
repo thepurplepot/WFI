@@ -3,6 +3,7 @@
 #include "repl.hh"
 #include "lexer.hh"
 #include "parser.hh"
+#include "evaluator.hh"
 
 void repl::Start() {
     while(true) {
@@ -23,7 +24,10 @@ void repl::Start() {
             continue;
         }
 
-        std::cout << program->string() << std::endl;
+        object::Object *evaluated = evaluator::eval(program);
+        if (evaluated != nullptr) {
+            std::cout << evaluated->inspect() << std::endl;
+        }
     }
 }
 
