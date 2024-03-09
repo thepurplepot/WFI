@@ -6,6 +6,8 @@
 #include "evaluator.hh"
 
 void repl::Start() {
+    object::Environment *env = new object::Environment();
+
     while(true) {
         std::string input;
         std::cout << repl::PROMPT;
@@ -24,7 +26,7 @@ void repl::Start() {
             continue;
         }
 
-        object::Object *evaluated = evaluator::eval(program);
+        object::Object *evaluated = evaluator::eval(program, env);
         if (evaluated != nullptr) {
             std::cout << evaluated->inspect() << std::endl;
         }
