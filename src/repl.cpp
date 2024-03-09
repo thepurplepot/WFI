@@ -3,8 +3,11 @@
 #include "repl.hh"
 #include "lexer.hh"
 #include "parser.hh"
+#include "evaluator.hh"
 
 void repl::Start() {
+    object::Environment *env = new object::Environment();
+
     while(true) {
         std::string input;
         std::cout << repl::PROMPT;
@@ -23,7 +26,10 @@ void repl::Start() {
             continue;
         }
 
-        std::cout << program->string() << std::endl;
+        object::Object *evaluated = evaluator::eval(program, env);
+        if (evaluated != nullptr) {
+            std::cout << evaluated->inspect() << std::endl;
+        }
     }
 }
 

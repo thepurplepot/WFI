@@ -31,6 +31,8 @@ include_directories(
 set(SOURCES_WFI
   src/main.cpp
   src/repl.cpp
+  src/evaluator.cpp
+  src/object.cpp
   src/parser.cpp
   src/ast.cpp
   src/lexer.cpp
@@ -39,9 +41,12 @@ set(SOURCES_WFI
 
 # Test sources
 set(SOURCES_TESTS
+  tests/evaluator_test.cpp
   tests/ast_test.cpp
   tests/lexer_test.cpp
   tests/parser_test.cpp
+  src/object.cpp
+  src/evaluator.cpp
   src/parser.cpp
   src/ast.cpp
   src/lexer.cpp

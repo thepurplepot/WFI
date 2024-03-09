@@ -3,6 +3,23 @@
 #include <iostream>
 #include <string>
 
+
+//TODO include in tests
+// class TestValue {
+// public:
+//     template<typename T>
+//     TestValue(T value) : value(value) {};
+//     template<typename T>
+//     T getValue() {
+//         return value;
+//     };
+// private:
+//     int value;
+//     long value;
+//     std::string value;
+//     bool value;
+// };
+
 template <typename T> std::string type_name()
 {
     typedef typename std::remove_reference<T>::type TR;
@@ -84,11 +101,6 @@ void testLiteralExpression<std::string>(Expression* exp, std::string expected) {
 template<>
 void testLiteralExpression<bool>(Expression* exp, bool expected) {
     testBooleanLiteral(exp, expected);
-}
-
-template<>
-void testLiteralExpression<char*>(Expression* exp, char* expected) {
-    testIdentifier(exp, expected);
 }
 
 template<typename R>

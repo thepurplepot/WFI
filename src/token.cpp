@@ -13,7 +13,7 @@ std::string Token::getLiteral() {
 
 token_t Token::lookupIdent(std::string ident) {
     if (token::keywords.find(ident) != token::keywords.end()) {
-        return token::keywords[ident];
+        return token::keywords.at(ident);
     }
     return token::IDENT;
 }
