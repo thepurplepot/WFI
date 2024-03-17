@@ -17,6 +17,7 @@ public:
     bool isDigit(char ch);
     std::string readIdentifier();
     std::string readNumber();
+    std::string readString();
     void skipWhitespace();
     char peekChar();
 };

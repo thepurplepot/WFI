@@ -93,6 +93,18 @@ std::string IntegerLiteral::string() {
     return this->token.getLiteral();
 }
 
+std::string StringLiteral::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string StringLiteral::expression_node() {
+    return "StringLiteral";
+}
+
+std::string StringLiteral::string() {
+    return this->token.getLiteral();
+}
+
 std::string PrefixExpression::token_literal() {
     return this->token.getLiteral();
 }
@@ -219,5 +231,66 @@ std::string CallExpression::string() {
         }
     }
     out += ")";
+    return out;
+}
+
+std::string ArrayLiteral::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string ArrayLiteral::expression_node() {
+    return "ArrayLiteral";
+}
+
+std::string ArrayLiteral::string() {
+    std::string out;
+    out += "[";
+    for (int i = 0; i < this->elements.size(); i++) {
+        out += this->elements.at(i)->string();
+        if (i != this->elements.size() - 1) {
+            out += ", ";
+        }
+    }
+    out += "]";
+    return out;
+}
+
+std::string IndexExpression::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string IndexExpression::expression_node() {
+    return "IndexExpression";
+}
+
+std::string IndexExpression::string() {
+    std::string out;
+    out += "(";
+    out += this->left->string();
+    out += "[";
+    out += this->index->string();
+    out += "])";
+    return out;
+}
+
+std::string HashLiteral::token_literal() {
+    return this->token.getLiteral();
+}
+
+std::string HashLiteral::expression_node() {
+    return "HashLiteral";
+}
+
+std::string HashLiteral::string() {
+    std::string out;
+    out += "{";
+    int i = 0;
+    for (auto pair : this->pairs) {
+        out += (pair.first->string() + ":" + pair.second->string());
+        if (i++ != this->pairs.size() - 1) {
+            out += ", ";
+        }
+    }
+    out += "}";
     return out;
 }

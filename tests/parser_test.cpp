@@ -334,7 +334,9 @@ TEST(parser, test_operator_precedence) {
         {"-(5 + 5)", "(-(5 + 5))"},
         {"!(true == true)", "(!(true == true))"},
         {"a + add(b * c) + d", "((a + add((b * c))) + d)"},
-        {"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"}
+        {"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
+        {"a * [1, 2, 3, 4][b * c] * d", "((a * ([1, 2, 3, 4][(b * c)])) * d)"},
+        {"add(a * b[2], b[1], 2 * [1, 2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"}
     };
 
     for (int i = 0; i < tests.size(); i++) {
@@ -522,4 +524,171 @@ TEST(parser, call_expression) {
     testLiteralExpression<int>(exp->arguments.at(0), 1);
     testInfixExpression(exp->arguments.at(1), 2, "*", 3);
     testInfixExpression(exp->arguments.at(2), 4, "+", 5);
+}
+
+TEST(parser, test_string_literal_expression) {
+    std::string input = "\"hello world\";";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    StringLiteral* str = dynamic_cast<StringLiteral*>(expStmt->expression);
+    EXPECT_FALSE(str == nullptr) << "exp not *ast.StringLiteral. got=" << expStmt->expression << std::endl;
+    EXPECT_EQ(str->value, "hello world") << "str.Value not \"hello world\". got=" << str->value << std::endl;
+}
+
+TEST(parser, test_parsing_array_literals) {
+    std::string input = "[1, 2 * 2, 3 + 3]";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    ArrayLiteral* array = dynamic_cast<ArrayLiteral*>(expStmt->expression);
+    EXPECT_FALSE(array == nullptr) << "exp not *ast.ArrayLiteral. got=" << expStmt->expression << std::endl;
+    if(array->elements.size() != 3)
+        FAIL() << "array.Elements does not contain 3 expressions. got=" << array->elements.size() << std::endl;
+    
+    testLiteralExpression<int>(array->elements.at(0), 1);
+    testInfixExpression(array->elements.at(1), 2, "*", 2);
+    testInfixExpression(array->elements.at(2), 3, "+", 3);
+}
+
+TEST(parser, test_parsing_index_expressions) {
+    std::string input = "myArray[1 + 1]";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    IndexExpression* indexExp = dynamic_cast<IndexExpression*>(expStmt->expression);
+    EXPECT_FALSE(indexExp == nullptr) << "exp not *ast.IndexExpression. got=" << expStmt->expression << std::endl;
+    testIdentifier(indexExp->left, "myArray");
+    testInfixExpression(indexExp->index, 1, "+", 1);
+}
+
+TEST(parser, test_parsing_hash_literals) {
+    std::string input = "{\"one\": 1, \"two\": 2, \"three\": 3}";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    HashLiteral* hash = dynamic_cast<HashLiteral*>(expStmt->expression);
+    EXPECT_FALSE(hash == nullptr) << "exp not *ast.HashLiteral. got=" << expStmt->expression << std::endl;
+    if(hash->pairs.size() != 3)
+        FAIL() << "hash.Pairs does not contain 3 pairs. got=" << hash->pairs.size() << std::endl;
+    
+    std::map<std::string, int> expected = {
+        {"one", 1},
+        {"two", 2},
+        {"three", 3}
+    };
+
+    for(auto const& pair : hash->pairs) {
+        StringLiteral* key = dynamic_cast<StringLiteral*>(pair.first);
+        EXPECT_FALSE(key == nullptr) << "key not *ast.StringLiteral. got=" << pair.first << std::endl;
+        int expectedValue = expected[key->value];
+        testLiteralExpression<int>(pair.second, expectedValue);
+    }
+}
+
+TEST(parser, test_parsing_empty_hash_literal) {
+    std::string input = "{}";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    HashLiteral* hash = dynamic_cast<HashLiteral*>(expStmt->expression);
+    EXPECT_FALSE(hash == nullptr) << "exp not *ast.HashLiteral. got=" << expStmt->expression << std::endl;
+    if(hash->pairs.size() != 0)
+        FAIL() << "hash.Pairs does not contain 0 pairs. got=" << hash->pairs.size() << std::endl;
+}
+
+TEST(parser, test_parsing_hash_literals_with_expressions) {
+    std::string input = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}";
+
+    Lexer l = Lexer(input);
+    Parser p = Parser(&l);
+    Program* program = p.parseProgram();
+    checkParserErrors(&p);
+
+    if(program == nullptr) 
+        FAIL() << "ParseProgram() returned nullptr" << std::endl;
+    if(program->statements->size() != 1)
+        FAIL() << "program.Statements does not contain 1 statements. got=" << program->statements->size() << std::endl;
+    
+    Statement* stmt = program->statements->at(0);
+    ExpressionStatement* expStmt = dynamic_cast<ExpressionStatement*>(stmt);
+    EXPECT_FALSE(expStmt == nullptr) << "stmt not *ast.ExpressionStatement. got=" << stmt << std::endl;
+
+    HashLiteral* hash = dynamic_cast<HashLiteral*>(expStmt->expression);
+    EXPECT_FALSE(hash == nullptr) << "exp not *ast.HashLiteral. got=" << expStmt->expression << std::endl;
+    if(hash->pairs.size() != 3)
+        FAIL() << "hash.Pairs does not contain 3 pairs. got=" << hash->pairs.size() << std::endl;
+    
+    std::map<std::string, std::tuple<int, std::string, int>> expected = {
+        {"one", {0, "+", 1}},
+        {"two", {10, "-", 8}},
+        {"three", {15, "/", 5}}
+    };
+
+    for(auto const& pair : hash->pairs) {
+        StringLiteral* key = dynamic_cast<StringLiteral*>(pair.first);
+        EXPECT_FALSE(key == nullptr) << "key not *ast.StringLiteral. got=" << pair.first << std::endl;
+        std::tuple<int, std::string, int> expectedValue = expected[key->value];
+        testInfixExpression(pair.second, std::get<0>(expectedValue), std::get<1>(expectedValue), std::get<2>(expectedValue));
+    }
 }

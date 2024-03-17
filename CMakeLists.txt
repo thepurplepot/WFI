@@ -41,6 +41,7 @@ set(SOURCES_WFI
 
 # Test sources
 set(SOURCES_TESTS
+  tests/object_test.cpp
   tests/evaluator_test.cpp
   tests/ast_test.cpp
   tests/lexer_test.cpp

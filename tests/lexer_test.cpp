@@ -19,7 +19,11 @@ TEST(lexer, test_next_token) {
         "}"
         "\n"
         "10 == 10;"
-        "10 != 9;";
+        "10 != 9;"
+        "\"foobar\""
+        "\"foo bar\""
+        "[1, 2];"       
+        "{\"foo\": \"bar\"}";
 
     std::vector<Token> tests = {   
         Token(token::LET, "let"),
@@ -85,6 +89,19 @@ TEST(lexer, test_next_token) {
         Token(token::NOT_EQ, "!="),
         Token(token::INT, "9"),
         Token(token::SEMICOLON, ";"),
+        Token(token::STRING, "foobar"),
+        Token(token::STRING, "foo bar"),
+        Token(token::LBRACKET, "["),
+        Token(token::INT, "1"),
+        Token(token::COMMA, ","),
+        Token(token::INT, "2"),
+        Token(token::RBRACKET, "]"),
+        Token(token::SEMICOLON, ";"),
+        Token(token::LBRACE, "{"),
+        Token(token::STRING, "foo"),
+        Token(token::COLON, ":"),
+        Token(token::STRING, "bar"),
+        Token(token::RBRACE, "}"),
         Token(token::EOF_, ""),
     };
 
