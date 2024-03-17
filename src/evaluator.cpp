@@ -27,8 +27,28 @@ object::Object* evaluator::eval(Node *node, object::Environment *env) {
         return new object::Integer(dynamic_cast<IntegerLiteral*>(node)->value);
     } else if (node->type() == "Boolean") {
         return evaluator::nativeBoolToBooleanObject(dynamic_cast<Boolean*>(node)->value);
+    } else if (node->type() == "StringLiteral") {
+        return new object::String(dynamic_cast<StringLiteral*>(node)->value);
     } else if (node->type() == "FunctionLiteral") {
         return new object::Function(&dynamic_cast<FunctionLiteral*>(node)->parameters, dynamic_cast<FunctionLiteral*>(node)->body, env);
+    } else if (node->type() == "ArrayLiteral") {
+        std::vector<object::Object*> elements = evalExpressions(dynamic_cast<ArrayLiteral*>(node)->elements, env);
+        if (elements.size() == 1 && evaluator::isError(elements[0])) {
+            return elements[0];
+        }
+        return new object::Array(elements);
+    } else if (node->type() == "HashLiteral") {
+        return evalHashLiteral(dynamic_cast<HashLiteral*>(node), env);
+    } else if (node->type() == "IndexExpression") {
+        object::Object *left = eval(dynamic_cast<IndexExpression*>(node)->left, env);
+        if (evaluator::isError(left)) {
+            return left;
+        }
+        object::Object *index = eval(dynamic_cast<IndexExpression*>(node)->index, env);
+        if (evaluator::isError(index)) {
+            return index;
+        }
+        return evalIndexExpression(left, index);
     } else if (node->type() == "PrefixExpression") {
         object::Object *right = eval(dynamic_cast<PrefixExpression*>(node)->right, env);
         if (evaluator::isError(right)) {
@@ -133,6 +153,8 @@ object::Object* evaluator::evalInfixExpression(std::string op, object::Object *l
         return evalIntegerInfixExpression(op, dynamic_cast<object::Integer*>(left), dynamic_cast<object::Integer*>(right));
     } else if (left->type() == object::BOOLEAN_OBJ && right->type() == object::BOOLEAN_OBJ) {
         return evalBooleanInfixExpression(op, dynamic_cast<object::Boolean*>(left), dynamic_cast<object::Boolean*>(right));
+    } else if (left->type() == object::STRING_OBJ && right->type() == object::STRING_OBJ) {
+        return evalStringInfixExpression(op, dynamic_cast<object::String*>(left), dynamic_cast<object::String*>(right));
     } else if (left->type() != right->type()) {
         return new object::Error("type mismatch: " + left->type() + " " + op + " " + right->type());
     } else {
@@ -176,6 +198,13 @@ object::Object* evaluator::evalBooleanInfixExpression(std::string op, object::Bo
     }
 }
 
+object::Object* evaluator::evalStringInfixExpression(std::string op, object::String *left, object::String *right) {
+    if (op != "+") {
+        return new object::Error("unknown operator: " + left->type() + " " + op + " " + right->type());
+    }
+    return new object::String(left->value + right->value);
+}
+
 object::Object* evaluator::evalIfExpression(IfExpression *ie, object::Environment *env) {
     object::Object *condition = evaluator::eval(ie->condition, env);
     if (condition->type() == object::ERROR_OBJ) {
@@ -190,22 +219,58 @@ object::Object* evaluator::evalIfExpression(IfExpression *ie, object::Environmen
     }
 }
 
+object::Object* evaluator::evalIndexExpression(object::Object *left, object::Object *index) {
+    if (left->type() == object::ARRAY_OBJ && index->type() == object::INTEGER_OBJ) {
+        return evalArrayIndexExpression(dynamic_cast<object::Array*>(left), dynamic_cast<object::Integer*>(index));
+    } else if (left->type() == object::HASH_OBJ) {
+        return evalHashIndexExpression(dynamic_cast<object::Hash*>(left), index);
+    } else {
+        return new object::Error("index operator not supported: " + left->type());
+    }
+}
+
+object::Object* evaluator::evalArrayIndexExpression(object::Array *array, object::Integer *index) {
+    int idx = index->value;
+    int max = array->elements.size() - 1;
+    if (idx < 0 || idx > max) {
+        return evaluator::NULLobj;
+    }
+    return array->elements[idx];
+}
+
+object::Object* evaluator::evalHashIndexExpression(object::Hash *hash, object::Object *index) {
+    if (!index->hashable()) {
+        return new object::Error("unusable as hash key: " + index->type());
+    }
+    auto pair = hash->pairs.find(index->hash_key());
+    if (pair == hash->pairs.end()) {
+        return evaluator::NULLobj;
+    }
+    return pair->second->value;
+}
+
 object::Object* evaluator::evalIdentifier(Identifier *node, object::Environment *env) {
     object::Object *val = env->get(node->value);
     if (val != nullptr) {
         return val;
     }
+    if (evaluator::builtins.find(node->value) != evaluator::builtins.end()) {
+        return evaluator::builtins[node->value];
+    }
     return new object::Error("identifier not found: " + node->value);
 }
 
 object::Object* evaluator::applyFunction(object::Object *fn, std::vector<object::Object*> args) {
-    if (fn->type() != object::FUNCTION_OBJ) {
+    if (fn->type() == object::FUNCTION_OBJ) {
+        object::Function *function = dynamic_cast<object::Function*>(fn);
+        object::Environment *extendedEnv = extendFunctionEnv(function, args);
+        object::Object *evaluated = evaluator::eval(function->body, extendedEnv);
+        return unwrapReturnValue(evaluated);
+    } else if (fn->type() == object::BUILTIN_OBJ) {
+        return dynamic_cast<object::Builtin*>(fn)->fn(args);
+    } else {
         return new object::Error("not a function: " + fn->type());
     }
-    object::Function *function = dynamic_cast<object::Function*>(fn);
-    object::Environment *extendedEnv = extendFunctionEnv(function, args);
-    object::Object *evaluated = evaluator::eval(function->body, extendedEnv);
-    return unwrapReturnValue(evaluated);
 }
 
 object::Environment* evaluator::extendFunctionEnv(object::Function *fn, std::vector<object::Object*> args) {
@@ -221,6 +286,25 @@ object::Object* evaluator::unwrapReturnValue(object::Object *obj) {
         return dynamic_cast<object::ReturnValue*>(obj)->value;
     }
     return obj;
+}
+
+object::Object* evaluator::evalHashLiteral(HashLiteral *node, object::Environment *env) {
+    std::map<object::Object*, object::Object*> pairs;
+    for (auto pair : node->pairs) {
+        object::Object *key = evaluator::eval(pair.first, env);
+        if (evaluator::isError(key)) {
+            return key;
+        }
+        if (!key->hashable()) {
+            return new object::Error("unusable as hash key: " + key->type());
+        }
+        object::Object *value = evaluator::eval(pair.second, env);
+        if (evaluator::isError(value)) {
+            return value;
+        }
+        pairs[key] = value;
+    }
+    return new object::Hash(pairs);
 }
 
 bool evaluator::isTruthy(object::Object *obj) {

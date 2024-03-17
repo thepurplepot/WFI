@@ -198,6 +198,10 @@ TEST(evaluator, test_error_handeling) {
             "unknown operator: BOOLEAN + BOOLEAN"
         },
         {"foobar", "identifier not found: foobar"},
+        {"\"Hello\" - \"World\"", "unknown operator: STRING - STRING"},
+        {"len(1)", "argument to `len` not supported, got INTEGER"},
+        {"len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1"},
+        {"{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION"},
     };
 
     for(auto test : tests) {
@@ -272,4 +276,134 @@ TEST(evaluator, test_closures) {
 
     object::Object *evaluated = testEval(input);
     testIntegerObject(evaluated, 4);
+}
+
+TEST(evaluator, test_string_literal) {
+    std::string input = R"("Hello World!")";
+    object::Object *evaluated = testEval(input);
+    object::String *str = dynamic_cast<object::String*>(evaluated);
+    ASSERT_TRUE(str != nullptr) << "object is not String. got=" << evaluated->type() << std::endl;
+    ASSERT_EQ(str->value, "Hello World!") << "String has wrong value. got=" << str->value << std::endl;
+}
+
+TEST(evaluator, test_string_concatination) {
+    std::string input = R"("Hello" + " " + "World!")";
+    object::Object *evaluated = testEval(input);
+    object::String *str = dynamic_cast<object::String*>(evaluated);
+    ASSERT_TRUE(str != nullptr) << "object is not String. got=" << evaluated->type() << std::endl;
+    ASSERT_EQ(str->value, "Hello World!") << "String has wrong value. got=" << str->value << std::endl;
+}
+
+TEST(evaluator, test_builtin_functions) {
+    struct builtinReturnTypes {
+        int integer;
+        std::string str;
+    };
+
+    struct BuiltinTest {
+        std::string input = "";
+        builtinReturnTypes expected;
+    };
+    
+    std::vector<BuiltinTest> tests = {
+        {"len(\"\")", {.integer = 0}},
+        {"len(\"four\")", {.integer = 4}},
+        {"len(\"hello world\")", {.integer = 11}},
+        {"len(1)", {.str = "argument to `len` not supported, got INTEGER"}},
+        {"len(\"one\", \"two\")", {.str = "wrong number of arguments. got=2, want=1"}},
+        {"first([1, 2, 3])", {.integer = 1}},
+    };
+    
+    for(auto test : tests) {
+        object::Object *evaluated = testEval(test.input);
+        if (test.expected.str != "") {
+            object::Error *err = dynamic_cast<object::Error*>(evaluated);
+            ASSERT_TRUE(err != nullptr) << "no error object returned. got=" << evaluated->type() << std::endl;
+            ASSERT_EQ(err->message, test.expected.str) << "wrong error message. got=" << err->message << ", want=" << test.expected.str << std::endl;
+        } else {
+            testIntegerObject(evaluated, test.expected.integer);
+        }
+    }
+}
+
+TEST(evaluator, test_array_literals) {
+    std::string input = "[1, 2 * 2, 3 + 3]";
+    object::Object *evaluated = testEval(input);
+    object::Array *result = dynamic_cast<object::Array*>(evaluated);
+    ASSERT_TRUE(result != nullptr) << "object is not Array. got=" << evaluated->type() << std::endl;
+    ASSERT_EQ(result->elements.size(), 3) << "array has wrong number of elements. got=" << result->elements.size() << std::endl;
+    testIntegerObject(result->elements[0], 1);
+    testIntegerObject(result->elements[1], 4);
+    testIntegerObject(result->elements[2], 6);
+}
+
+TEST(evaluator, test_array_index_expressions) {
+    struct ArrayIndexTest {
+        std::string input;
+        int expected;
+    };
+
+    std::vector<ArrayIndexTest> tests = {
+        {"[1, 2, 3][0]", 1},
+        {"[1, 2, 3][1]", 2},
+        {"[1, 2, 3][2]", 3},
+        {"let i = 0; [1][i];", 1},
+        {"[1, 2, 3][1 + 1];", 3},
+        {"let myArray = [1, 2, 3]; myArray[2];", 3},
+        {"let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6},
+        {"let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2},
+    };
+
+    for(auto test : tests) {
+        object::Object *evaluated = testEval(test.input);
+        testIntegerObject(evaluated, test.expected);
+    }
+}
+
+TEST(evaluator, test_hash_literals) {
+    std::string input = R"({"one": 10, "two": 10 * 2, "three": 10 + 3})";
+    object::Object *evaluated = testEval(input);
+    object::Hash *result = dynamic_cast<object::Hash*>(evaluated);
+    ASSERT_TRUE(result != nullptr) << "object is not Hash. got=" << evaluated->type() << std::endl;
+
+    std::map<std::string, int> expected = {
+        {"one", 10},
+        {"two", 20},
+        {"three", 13},
+    };
+
+    ASSERT_EQ(result->pairs.size(), expected.size()) << "hash has wrong number of pairs. got=" << result->pairs.size() << std::endl;
+
+    for (auto expectedPair : expected) {
+        auto expectedKey = new object::String(expectedPair.first);
+        auto pair = result->pairs[expectedKey->hash_key()];
+        
+        ASSERT_TRUE(pair != nullptr) << "no pair for given key in pairs" << std::endl;
+        ASSERT_TRUE(pair->key->inspect() == expectedPair.first) << "pair has no key" << std::endl;
+
+        testIntegerObject(pair->value, expectedPair.second);
+    }
+}
+
+TEST(evaluator, test_hash_index_expressions) {
+    struct HashIndexTest {
+        std::string input;
+        int expected;
+    };
+
+    std::vector<HashIndexTest> tests = {
+        {R"({"one": 1, "two": 2, "three": 3}["one"])", 1},
+        {R"({"one": 1, "two": 2, "three": 3}["two"])", 2},
+        {R"({"one": 1, "two": 2, "three": 3}["three"])", 3},
+        //{R"({"one": 1, "two": 2, "three": 3}[\"four\"])", 0},
+        {R"({1: 1, 2: 2, 3: 3}[1])", 1},
+        {R"({1: 1, 2: 2, 3: 3}[2])", 2},
+        {R"({1: 1, 2: 2, 3: 3}[3])", 3},
+        //{R"({1: 1, 2: 2, 3: 3}[4])", 0},
+    };
+
+    for(auto test : tests) {
+        object::Object *evaluated = testEval(test.input);
+        testIntegerObject(evaluated, test.expected);
+    }
 }

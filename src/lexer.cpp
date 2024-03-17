@@ -46,6 +46,9 @@ Token Lexer::nextToken() {
     case ',':
         tok = Token(token::COMMA, {this->ch});
         break;
+    case ':':
+        tok = Token(token::COLON, {this->ch});
+        break;
     case '+':
         tok = Token(token::PLUS, {this->ch});
         break;
@@ -78,6 +81,15 @@ Token Lexer::nextToken() {
         break;
     case '}':
         tok = Token(token::RBRACE, {this->ch});
+        break;
+    case '[':
+        tok = Token(token::LBRACKET, {this->ch});
+        break;
+    case ']':
+        tok = Token(token::RBRACKET, {this->ch});
+        break;
+    case '"':
+        tok = Token(token::STRING, this->readString());
         break;
     case 0:
         tok = Token(token::EOF_, "");
@@ -121,6 +133,14 @@ std::string Lexer::readNumber() {
     while (isDigit(this->ch)) {
         this->readChar();
     }
+    return this->input.substr(position, this->position - position);
+}
+
+std::string Lexer::readString() {
+    int position = this->position + 1;
+    do {
+        this->readChar();
+    } while (this->ch != '"' && this->ch != 0);
     return this->input.substr(position, this->position - position);
 }
 

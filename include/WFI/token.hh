@@ -24,6 +24,7 @@ namespace token {
     // Identifiers + literals
     static const token_t IDENT = "IDENT"; // add, foobar, x, y, ...
     static const token_t INT = "INT"; // 1343456
+    static const token_t STRING = "STRING";
     // Operators
     static const token_t ASSIGN = "=";
     static const token_t PLUS = "+";
@@ -37,11 +38,14 @@ namespace token {
     static const token_t NOT_EQ = "!=";
     // Delimiters
     static const token_t COMMA = ",";
+    static const token_t COLON = ":";
     static const token_t SEMICOLON = ";";
     static const token_t LPAREN = "(";
     static const token_t RPAREN = ")";
     static const token_t LBRACE = "{";
     static const token_t RBRACE = "}";
+    static const token_t LBRACKET = "[";
+    static const token_t RBRACKET = "]";
     // Keywords
     static const token_t FUNCTION = "FUNCTION";
     static const token_t LET = "LET";

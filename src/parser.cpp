@@ -17,6 +17,7 @@ const std::map<token_t, precedence_t> Parser::precedences = {
     {token::SLASH, PRODUCT},
     {token::ASTERISK, PRODUCT},
     {token::LPAREN, CALL},
+    {token::LBRACKET, INDEX}
 };
 
 
@@ -34,6 +35,9 @@ Parser::Parser(Lexer* l) {
     this->registerPrefix(token::LPAREN, Parser::parseGroupedExpression);
     this->registerPrefix(token::IF, Parser::parseIfExpression);
     this->registerPrefix(token::FUNCTION, Parser::parseFunctionLiteral);
+    this->registerPrefix(token::STRING, Parser::parseStringLiteral);
+    this->registerPrefix(token::LBRACKET, Parser::parseArrayLiteral);
+    this->registerPrefix(token::LBRACE, Parser::parseHashLiteral);
 
     this->registerInfix(token::PLUS, Parser::parseInfixExpression);
     this->registerInfix(token::MINUS, Parser::parseInfixExpression);
@@ -44,6 +48,7 @@ Parser::Parser(Lexer* l) {
     this->registerInfix(token::LT, Parser::parseInfixExpression);
     this->registerInfix(token::GT, Parser::parseInfixExpression);
     this->registerInfix(token::LPAREN, Parser::parseCallExpression);
+    this->registerInfix(token::LBRACKET, Parser::parseIndexExpression);
 }
 
 Parser::~Parser() {
@@ -151,6 +156,10 @@ Expression* Parser::parseIntegerLiteral() {
     }
 }
 
+Expression* Parser::parseStringLiteral() {
+    return new StringLiteral(curToken, curToken.getLiteral());
+}
+
 Expression* Parser::parsePrefixExpression() {
     PrefixExpression* exp = new PrefixExpression(curToken, curToken.getLiteral());
     nextToken();
@@ -255,7 +264,7 @@ std::vector<Identifier*> Parser::parseFunctionParameters() {
 
 Expression* Parser::parseCallExpression(Expression* function) {
     CallExpression* exp = new CallExpression(curToken, function);
-    exp->arguments = parseCallArguments();
+    exp->arguments = parseExpressionList(token::RPAREN);
     return exp;
 }
 
@@ -276,6 +285,63 @@ std::vector<Expression*> Parser::parseCallArguments() {
         return std::vector<Expression*>();
     }
     return args;
+}
+
+std::vector<Expression*> Parser::parseExpressionList(token_t end) {
+    std::vector<Expression*> list;
+    if (peekTokenIs(end)) {
+        nextToken();
+        return list;
+    }
+    nextToken();
+    list.push_back(parseExpression(LOWEST));
+    while (peekTokenIs(token::COMMA)) {
+        nextToken();
+        nextToken();
+        list.push_back(parseExpression(LOWEST));
+    }
+    if (!expectPeek(end)) {
+        return std::vector<Expression*>();
+    }
+    return list;
+}
+
+Expression* Parser::parseArrayLiteral() {
+    ArrayLiteral* array = new ArrayLiteral(curToken);
+    array->elements = parseExpressionList(token::RBRACKET);
+    return array;
+}
+
+Expression* Parser::parseIndexExpression(Expression* left) {
+    IndexExpression* exp = new IndexExpression(curToken, left);
+    nextToken();
+    exp->index = parseExpression(LOWEST);
+    if (!expectPeek(token::RBRACKET)) {
+        return nullptr;
+    }
+    return exp;
+}
+
+Expression* Parser::parseHashLiteral() {
+    HashLiteral* hash = new HashLiteral(curToken);
+    hash->pairs = std::map<Expression*, Expression*>();
+    while (!peekTokenIs(token::RBRACE)) {
+        nextToken();
+        Expression* key = parseExpression(LOWEST);
+        if (!expectPeek(token::COLON)) {
+            return nullptr;
+        }
+        nextToken();
+        Expression* value = parseExpression(LOWEST);
+        hash->pairs[key] = value;
+        if (!peekTokenIs(token::RBRACE) && !expectPeek(token::COMMA)) {
+            return nullptr;
+        }
+    }
+    if (!expectPeek(token::RBRACE)) {
+        return nullptr;
+    }
+    return hash;
 }
 
 bool Parser::curTokenIs(token_t t) {
